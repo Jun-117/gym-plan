@@ -1,0 +1,568 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Gym Plan">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+<link rel="apple-touch-icon" href="icon-180.png">
+<title>My Gym Plan</title>
+<style>
+/* Settings-screen look: white page, gray section labels, full-width rows with a round icon,
+   one line of detail, and a chevron when a row opens a photo sheet. System font on iPhone. */
+:root {
+  --bg: #ffffff;
+  --ink: #000000;
+  --ink2: #262626;
+  --muted: #737373;
+  --line: #efefef;
+  --chip: #efefef;
+  --sel: #000000;
+  --sel-ink: #ffffff;
+  --blue: #0095f6;
+  --pink: #e1306c;
+  --soft: #fafafa;
+  --note: #f4f4f5;
+  --warn: #ed4956;
+  --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #000000; --ink: #f5f5f5; --ink2: #e6e6e6; --muted: #a8a8a8; --line: #262626; --chip: #262626;
+    --sel: #f5f5f5; --sel-ink: #000000; --soft: #121212; --note: #1c1c1e;
+    color-scheme: dark;
+  }
+}
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--font); font-size: 15px; line-height: 1.4; }
+
+.top { position: sticky; top: 0; z-index: 10; background: var(--bg); padding-top: env(safe-area-inset-top, 0px); border-bottom: 1px solid var(--line); }
+.nav { height: 44px; display: grid; place-items: center; font-weight: 700; font-size: 17px; letter-spacing: -.01em; }
+.chips { max-width: 640px; margin: 0 auto; padding: 2px 16px 12px; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; }
+.chip { position: relative; font: inherit; border: 0; border-radius: 12px; background: var(--chip); color: var(--ink); padding: 7px 0 6px; display: grid; justify-items: center; gap: 1px; cursor: pointer; min-width: 0; }
+.chip .d { font-size: 14px; font-weight: 700; }
+.chip .t { font-size: 10.5px; color: var(--muted); white-space: nowrap; }
+.chip[aria-selected="true"] { background: var(--sel); color: var(--sel-ink); }
+.chip[aria-selected="true"] .t { color: var(--sel-ink); opacity: .75; }
+.chip.today::after { content: ""; position: absolute; bottom: -7px; left: 50%; width: 5px; height: 5px; margin-left: -2.5px; border-radius: 50%; background: var(--blue); }
+.chip:focus-visible, .row:focus-visible, .done:focus-visible, .copy:focus-visible { outline: 3px solid var(--blue); outline-offset: 2px; }
+
+main { max-width: 640px; margin: 0 auto; padding: 18px 16px calc(40px + env(safe-area-inset-bottom, 0px)); }
+.date { font-size: 13px; color: var(--muted); }
+h1 { font-size: 28px; font-weight: 800; letter-spacing: -.02em; line-height: 1.15; margin: 2px 0 2px; }
+.sub { margin: 0; font-size: 14px; color: var(--muted); }
+.note { margin-top: 12px; background: var(--note); border-radius: 12px; padding: 12px 14px; font-size: 14px; }
+.note b { font-weight: 700; }
+.sec { margin: 24px 0 4px; font-size: 13px; font-weight: 600; color: var(--muted); }
+
+.list { border-top: 1px solid var(--line); }
+.row { width: 100%; display: flex; align-items: center; gap: 12px; padding: 12px 0; border: 0; border-bottom: 1px solid var(--line); background: none; color: inherit; font: inherit; text-align: left; }
+button.row { cursor: pointer; }
+button.row:active { background: var(--soft); }
+.ic { flex: none; width: 38px; height: 38px; border-radius: 50%; background: var(--chip); display: grid; place-items: center; font-size: 19px; line-height: 1; }
+.ic svg { width: 20px; height: 20px; fill: none; stroke: var(--ink); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.tx { flex: 1; min-width: 0; display: grid; gap: 2px; }
+.tx .n { font-size: 15px; font-weight: 600; }
+.tx .main { margin-left: 6px; font-size: 12px; font-weight: 700; color: var(--blue); }
+.tx .d { font-size: 13px; color: var(--muted); }
+.tx .b { font-size: 12.5px; color: var(--muted); }
+.tx .b::before { content: "Busy? "; font-weight: 600; color: var(--ink2); }
+.tx .src { font-size: 11.5px; font-weight: 600; color: var(--blue); }
+.rt { flex: none; display: flex; align-items: center; gap: 2px; }
+.sets { text-align: right; font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.sets small { display: block; font-size: 11.5px; font-weight: 500; color: var(--muted); }
+.chev { width: 18px; height: 18px; fill: none; stroke: var(--muted); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.hint { margin: 10px 0 0; font-size: 12.5px; color: var(--muted); }
+
+details.acc > summary { list-style: none; cursor: pointer; }
+details.acc > summary::-webkit-details-marker { display: none; }
+details.acc[open] > summary .chev { transform: rotate(90deg); }
+.accbody { padding: 4px 0 14px 50px; border-bottom: 1px solid var(--line); font-size: 14px; }
+.accbody ul, .accbody ol { margin: 6px 0 0; padding-left: 18px; display: grid; gap: 6px; }
+.accbody p { margin: 8px 0 0; font-size: 13px; color: var(--muted); }
+.accbody .stop { color: var(--warn); font-weight: 700; }
+.accbody h4 { margin: 10px 0 0; font-size: 13px; font-weight: 600; color: var(--muted); }
+pre.tpl { margin: 8px 0 0; padding: 12px; background: var(--note); border-radius: 12px; font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 12.5px; line-height: 1.6; white-space: pre-wrap; overflow-wrap: anywhere; }
+.copy { margin-top: 10px; font: inherit; font-size: 14px; font-weight: 600; color: #ffffff; background: var(--blue); border: 0; border-radius: 8px; padding: 8px 16px; cursor: pointer; }
+.foot { margin: 22px 0 0; font-size: 12px; color: var(--muted); line-height: 1.6; }
+
+.sheet { position: fixed; inset: 0; z-index: 50; display: grid; align-items: end; justify-items: center; }
+.sheet[hidden] { display: none; }
+.back { position: absolute; inset: 0; background: rgba(0, 0, 0, .45); }
+.card { position: relative; width: 100%; max-width: 640px; max-height: 92vh; overflow-y: auto; overscroll-behavior: contain; background: var(--bg); color: var(--ink); border-radius: 16px 16px 0 0; padding: 0 16px calc(24px + env(safe-area-inset-bottom, 0px)); }
+.grab { width: 36px; height: 5px; border-radius: 3px; background: var(--line); margin: 8px auto 0; }
+.shead { position: sticky; top: 0; z-index: 2; background: var(--bg); display: grid; grid-template-columns: 60px 1fr 60px; align-items: center; padding: 8px 0 10px; border-bottom: 1px solid var(--line); }
+.shead h2 { margin: 0; text-align: center; font-size: 16px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.done { justify-self: end; font: inherit; font-size: 16px; font-weight: 600; color: var(--blue); background: none; border: 0; padding: 6px 0 6px 10px; cursor: pointer; }
+.sbody { display: grid; gap: 18px; padding-top: 14px; }
+.big { display: grid; gap: 2px; }
+.big .s { font-size: 24px; font-weight: 800; letter-spacing: -.01em; }
+.big .d { font-size: 14px; color: var(--muted); }
+.blk { display: grid; gap: 10px; }
+.blk h3 { margin: 0; font-size: 13px; font-weight: 600; color: var(--muted); }
+.blk p { margin: 0; font-size: 14px; }
+.move { margin: 0; background: var(--soft); border-radius: 14px; padding: 10px 10px 12px; display: grid; gap: 8px; }
+.move ol { margin: 0; padding-left: 20px; display: grid; gap: 4px; font-size: 14px; }
+.move small { font-size: 11.5px; color: var(--muted); }
+.shot { margin: 0; display: grid; gap: 6px; }
+.shot img { display: block; width: 100%; height: auto; max-height: 62vh; object-fit: contain; background: var(--soft); border-radius: 12px; }
+.shot figcaption { display: grid; gap: 2px; font-size: 13.5px; }
+.shot figcaption b { font-weight: 600; }
+.shot figcaption span { font-size: 12.5px; color: var(--muted); }
+body.lock { overflow: hidden; }
+@media (min-width: 700px) { .sheet { align-items: center; } .card { border-radius: 16px; } }
+
+.fig { display: block; width: 100%; height: auto; }
+.fig .body { fill: none; stroke: var(--ink2); stroke-width: 6; stroke-linecap: round; stroke-linejoin: round; }
+.fig .halo { fill: none; stroke: var(--soft); stroke-width: 10; stroke-linecap: round; stroke-linejoin: round; }
+.fig .far { fill: none; stroke: var(--muted); stroke-width: 5.5; stroke-linecap: round; stroke-linejoin: round; opacity: .5; }
+.fig .head { fill: var(--ink2); }
+.fig .eq { fill: none; stroke: var(--blue); stroke-width: 3; stroke-linecap: round; }
+.fig .eqf { fill: var(--blue); }
+.fig .plate { fill: var(--bg); fill-opacity: .85; stroke: var(--blue); stroke-width: 2.5; }
+.fig .pad { fill: var(--bg); stroke: var(--pink); stroke-width: 2.5; }
+.fig .padline { stroke: var(--pink); stroke-width: 6; stroke-linecap: round; opacity: .5; }
+.fig .bench, .fig .post { fill: var(--bg); stroke: var(--muted); stroke-width: 2; }
+.fig .benchleg { stroke: var(--muted); stroke-width: 2.5; stroke-linecap: round; }
+.fig .rope { fill: none; stroke: var(--pink); stroke-width: 2.5; }
+.fig .ground { stroke: var(--line); stroke-width: 2; }
+.fig .lbl { font: 600 12px var(--font); fill: var(--muted); }
+.fig .arrow { fill: none; stroke: var(--muted); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="nav">My Gym Plan</div>
+  <nav class="chips" id="days" role="tablist" aria-label="Day of the week"></nav>
+</header>
+
+<main>
+  <div id="panel" role="tabpanel"></div>
+
+  <div class="sec">More</div>
+  <div class="list">
+    <details class="acc">
+      <summary class="row"><span class="ic"><svg viewBox="0 0 24 24"><path d="M12 4v16M8 20h8M5 8h14"/><path d="M5 8l-2.5 6a2.5 2.5 0 0 0 5 0z"/><path d="M19 8l-2.5 6a2.5 2.5 0 0 0 5 0z"/></svg></span><span class="tx"><span class="n">Weight rules</span><span class="d">When to go lighter or heavier</span></span><svg class="chev" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></summary>
+      <div class="accbody">
+        <ul>
+          <li>After each set, you feel you could do <b>3–5 more</b> → keep this weight.</li>
+          <li>Only 1–2 more → one step lighter for the next set.</li>
+          <li>7 or more → week 1: just remember it. From week 2, if it happens twice → one step heavier.</li>
+          <li>One step = 1–2 kg dumbbell · 2.5 kg plate · one pin.</li>
+          <li>New machine → new weight. The same kg feels different on each machine. Find it with your first set.</li>
+          <li>Sharp joint pain → stop that exercise for today.</li>
+          <li>Machine shows lb? 10 kg ≈ 22 lb · 15 kg ≈ 33 lb · 20 kg ≈ 44 lb.</li>
+        </ul>
+      </div>
+    </details>
+    <details class="acc">
+      <summary class="row"><span class="ic"><svg viewBox="0 0 24 24"><path d="M12 3l7 3v5.5c0 4.5-3 7.8-7 9.5-4-1.7-7-5-7-9.5V6z"/></svg></span><span class="tx"><span class="n">Stay safe</span><span class="d">Stairs, feeling sick, when to stop</span></span><svg class="chev" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></summary>
+      <div class="accbody">
+        <ul>
+          <li>Stairs: you can talk, but you can't sing.</li>
+          <li>So you don't feel sick: a banana 30 min before · stairs start at level 1 for 1 min · walk slowly for 2–3 min after · sip water between sets.</li>
+          <li class="stop">Chest pain, a tight chest, or feeling like you might faint → stop right away.</li>
+        </ul>
+      </div>
+    </details>
+    <details class="acc">
+      <summary class="row"><span class="ic"><svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 0 1-11.5 7.2L4 20l1-4.2A8 8 0 1 1 20 12z"/></svg></span><span class="tx"><span class="n">Tell Jun tonight</span><span class="d">Copy, fill in, send</span></span><svg class="chev" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></summary>
+      <div class="accbody">
+        <pre class="tpl" id="tpl">[Workout] exercise · weight × reps × sets · how many more I could do (and which machine, if I changed)
+[Stairs] level · minutes
+[Morning weight]
+[Sleep] hours I really slept
+[Food] only what was different from the plan
+[Body] joint pain · sore muscles · felt sick or dizzy
+[Tape] waist · thigh · hip (every 4 weeks)</pre>
+        <button type="button" class="copy" id="copy">Copy</button>
+      </div>
+    </details>
+    <details class="acc">
+      <summary class="row"><span class="ic"><svg viewBox="0 0 24 24"><path d="M4 11l8-6.5 8 6.5v9H4z"/><path d="M10 20v-5.5h4V20"/></svg></span><span class="tx"><span class="n">No gym? Home workout</span><span class="d">No equipment · 15 or 30 min</span></span><svg class="chev" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></summary>
+      <div class="accbody">
+        <h4>15 min</h4>
+        <ul>
+          <li>Glute bridge 3 × 20</li>
+          <li>Squat 3 × 15</li>
+          <li>Lunge 3 × 10 each leg</li>
+          <li>Plank 3 × 30 sec</li>
+        </ul>
+        <h4>30 min — do the 15 min, then add</h4>
+        <ul>
+          <li>Single-leg bridge 3 × 12 each leg</li>
+          <li>Side-lying leg raise 3 × 20 each leg</li>
+          <li>Hip hinge, no weight 3 × 15</li>
+        </ul>
+        <p>Jun may swap the squats and lunges for more bridges and leg raises — not decided yet.</p>
+      </div>
+    </details>
+    <details class="acc">
+      <summary class="row"><span class="ic"><svg viewBox="0 0 24 24"><rect x="4" y="5.5" width="16" height="14.5" rx="2.5"/><path d="M4 10h16M9 3.5v4M15 3.5v4"/></svg></span><span class="tx"><span class="n">Dates to know</span><span class="d">October</span></span><svg class="chev" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></summary>
+      <div class="accbody">
+        <ul>
+          <li><b>Thu, Oct 1</b> — your first Hip Day</li>
+          <li><b>Sat, Oct 3</b> — measure waist, thigh, hip + take your photo, if you haven't yet</li>
+          <li><b>Fri, Oct 9</b> — Kathmandu, no gym</li>
+          <li><b>Oct 11 – 25</b> — Dashain. Not sure the gym is open (guess) → closed = home workout</li>
+          <li><b>Sat, Oct 17</b> — first calorie check (guess)</li>
+          <li><b>Mon, Oct 19</b> — your 3 easy weeks are done</li>
+          <li><b>Mon, Oct 26</b> — Jun may update your plan (guess)</li>
+        </ul>
+      </div>
+    </details>
+    <details class="acc">
+      <summary class="row"><span class="ic"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5.5M12 7.6v.1"/></svg></span><span class="tx"><span class="n">Why this plan</span><span class="d">The reasons, in short</span></span><svg class="chev" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></summary>
+      <div class="accbody">
+        <ul>
+          <li><b>Mon &amp; Thu = Hip Day</b> — your main day. <b>Tue &amp; Fri</b> = back, core and a little hip work, for your upper-body shape. <b>Wed &amp; Sun</b> = cardio day.</li>
+          <li><b>Why so much cardio?</b> ① You move a bit more instead of eating less — your food is already close to the lowest safe amount. ② Your hips get 48–72 hours to rest between Hip Days. ③ New lifters get very sore and quit — cardio days help avoid that.</li>
+          <li><b>Left out on purpose:</b> squats, leg extension, calf raise, shoulder press, arm-only exercises. Squats work your bottom about as well as hip thrusts, but grow your thighs more (study: Plotkin 2023).</li>
+          <li><b>Chest:</b> only 4 sets a week — on purpose.</li>
+          <li><b>First 3 weeks are easy</b> — tendons get used to training more slowly than muscles.</li>
+          <li><b>Weeks 3–4:</b> your legs may feel a bit bigger. That's water and stored energy in the muscles for a while, not bulk.</li>
+          <li><b>No incline while you wait for Jun</b> — a steep 30-minute walk would burn more than your food plan allows (guess).</li>
+        </ul>
+      </div>
+    </details>
+  </div>
+
+  <p class="foot">Rows with <b>›</b> open photos of our gym and how-to drawings.<br>
+  <b>guess</b> = not sure yet — check it with your first set.<br>
+  Weights from Sep 30.<br>
+  Tip: in Safari tap Share → <b>Add to Home Screen</b> to open it like an app.</p>
+</main>
+
+<div class="sheet" id="sheet" hidden>
+  <div class="back" data-close="1"></div>
+  <div class="card" role="dialog" aria-modal="true" aria-labelledby="sheet-title">
+    <div class="grab"></div>
+    <div class="shead"><span></span><h2 id="sheet-title"></h2><button type="button" class="done" data-close="1">Done</button></div>
+    <div class="sbody" id="sheet-body"></div>
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  // ---- how-to drawings (side view · left = start, right = end) ----
+  var DRAW = (function () {
+    function f(n) { return Math.round(n * 10) / 10; }
+    function poly(pts, cls) { return '<polyline class="' + cls + '" points="' + pts.map(function (p) { return f(p[0]) + "," + f(p[1]); }).join(" ") + '"/>'; }
+    function line(a, b, cls) { return '<line class="' + cls + '" x1="' + f(a[0]) + '" y1="' + f(a[1]) + '" x2="' + f(b[0]) + '" y2="' + f(b[1]) + '"/>'; }
+    function circ(c, r, cls) { return '<circle class="' + cls + '" cx="' + f(c[0]) + '" cy="' + f(c[1]) + '" r="' + r + '"/>'; }
+    function rect(x, y, w, h, cls, rx) { return '<rect class="' + cls + '" x="' + x + '" y="' + y + '" width="' + w + '" height="' + h + '"' + (rx ? ' rx="' + rx + '"' : "") + "/>"; }
+    function person(P) {
+      var s = "";
+      s += poly([P.hip, P.knee, P.ank, P.toe], "body");
+      s += poly([P.hip, P.sh, P.head], "body");
+      s += poly([P.sh, P.elb, P.wri], "halo");
+      s += poly([P.sh, P.elb, P.wri], "body");
+      s += circ(P.head, 9, "head");
+      return s;
+    }
+    function plate(c, r) { return circ(c, r, "plate") + circ(c, 2, "eqf"); }
+    function ground() { return line([4, 140], [156, 140], "ground"); }
+    function bench() { return rect(8, 108, 42, 8, "bench", 2) + line([14, 116], [14, 140], "benchleg") + line([44, 116], [44, 140], "benchleg"); }
+    function curlMachine() { return rect(14, 97, 98, 7, "bench", 3) + line([26, 104], [26, 140], "benchleg") + line([100, 104], [100, 140], "benchleg") + line([18, 104], [14, 116], "benchleg"); }
+    var SCENES = {
+      rdl: {
+        label: "Romanian deadlift with dumbbells",
+        a: function () { return ground() + person({ head: [80, 18], sh: [80, 34], hip: [80, 74], knee: [82, 106], ank: [80, 138], toe: [91, 139], elb: [85, 57], wri: [87, 79] }) + plate([88, 80], 6); },
+        b: function () { return ground() + person({ head: [104.5, 59.2], sh: [90, 66], hip: [53.7, 82.9], knee: [75.4, 106.4], ank: [80, 138], toe: [91, 139], elb: [90, 89], wri: [90, 111] }) + plate([90, 112], 6); }
+      },
+      hipthrust: {
+        label: "Hip thrust",
+        a: function () { return ground() + bench() + person({ head: [32.9, 94.8], sh: [46, 104], hip: [78.8, 126.9], knee: [104, 107.2], ank: [118, 136], toe: [129, 139], elb: [69, 97.4], wri: [79, 117] }) + circ([79, 116], 7, "pad") + circ([79, 116], 2.5, "eqf"); },
+        b: function () { return ground() + bench() + person({ head: [30, 100], sh: [46, 104], hip: [86, 104], knee: [118, 104], ank: [118, 136], toe: [129, 139], elb: [64.8, 89.1], wri: [86, 95] }) + circ([86, 94], 7, "pad") + circ([86, 94], 2.5, "eqf"); }
+      },
+      legcurl: {
+        label: "Lying leg curl",
+        a: function () { return ground() + curlMachine() + person({ head: [24, 86], sh: [38, 91], hip: [78, 91], knee: [110, 91], ank: [142, 91], toe: [145, 101], elb: [26, 104], wri: [15, 113] }) + line([110, 91], [140, 83], "eq") + circ([140, 83], 6, "pad") + circ([110, 91], 3, "eqf"); },
+        b: function () { return ground() + curlMachine() + person({ head: [24, 86], sh: [38, 91], hip: [78, 91], knee: [110, 91], ank: [104.4, 59.5], toe: [113, 55], elb: [26, 104], wri: [15, 113] }) + line([110, 91], [96.9, 62.9], "eq") + circ([96.9, 62.9], 6, "pad") + circ([110, 91], 3, "eqf"); }
+      }
+    };
+    function svg(name) {
+      var S = SCENES[name];
+      if (!S) return "";
+      return '<svg class="fig" viewBox="0 0 330 150" role="img" aria-label="' + S.label + ' — left: start, right: end">' +
+        '<text class="lbl" x="6" y="12">1 · Start</text><text class="lbl" x="176" y="12">2 · End</text>' +
+        "<g>" + S.a() + "</g>" +
+        '<path class="arrow" d="M154 76 L170 76 M164 71 L170 76 L164 81"/>' +
+        '<g transform="translate(170 0)">' + S.b() + "</g></svg>";
+    }
+    return { svg: svg };
+  })();
+
+  // ---- row icons ----
+  var ICON = {
+    heart: '<svg viewBox="0 0 24 24"><path d="M12 20.5s-7.5-4.6-7.5-10.1A4.3 4.3 0 0 1 12 7.6a4.3 4.3 0 0 1 7.5 2.8c0 5.5-7.5 10.1-7.5 10.1z"/></svg>',
+    dumbbell: '<svg viewBox="0 0 24 24"><path d="M3.5 10v4M6.5 7.5v9M17.5 7.5v9M20.5 10v4M6.5 12h11"/></svg>',
+    target: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3.5"/></svg>',
+    leaf: '<svg viewBox="0 0 24 24"><path d="M5 19c.5-8.5 5.5-13.5 14-14-.5 8.5-5.5 13.5-14 14z"/><path d="M5 19l8-8"/></svg>'
+  };
+  var CHEV = '<svg class="chev" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg>';
+
+  // ---- shared rows ----
+  var WARM = { i: "heart", n: "Treadmill", d: "Warm up · speed 5 · incline 2", s: "10 min", b: "Elliptical or bike", m: "warm" };
+  var FIN = { i: "heart", n: "Stair climber", d: "Level 1 for 1 min → level 2 · you can talk, but not sing · fill the rest with an incline walk (speed 5 · incline 6) · treadmills busy → stairs only", s: "15 min", s2: "total", b: "Incline walk → elliptical (easy)", m: "stairs" };
+  var STRETCH = { i: "leaf", n: "Stretch", d: "", s: "5 min" };
+  var WAIT = { i: "heart", n: "Easy walk while Jun finishes", d: "Treadmill · speed 4.5–5 · incline 0–2", s: "30 min", s2: "at most", b: "Stretch or rest — not the elliptical (it can be harder · guess)", m: "walk" };
+
+  var HIP = { title: "Hip Day", sub: "Your main day", tab: "Hip", groups: [
+    ["Warm up", [WARM]],
+    ["Workout", [
+      { i: "dumbbell", n: "Hip Thrust", main: true, d: "Empty bar (20 kg) + bar pad · upper back on a bench", s: "3 × 12", b: "Hip thrust machine — same sets", m: "hipthrust" },
+      { i: "dumbbell", n: "Romanian Deadlift (RDL)", d: "A 5 kg dumbbell in each hand", s: "3 × 12", m: "rdl" },
+      { i: "dumbbell", n: "Leg Press", d: "Start with no plates → then 20 kg · feet high and wide", s: "3 × 12", b: "Take turns with Jun — don't use the squat machine", m: "legpress" },
+      { i: "dumbbell", n: "Leg Curl (lying)", d: "No plates · can't do 12? → dumbbell leg curl", s: "3 × 12", b: "Dumbbell leg curl 2.5–5 kg (guess)", m: "legcurl" },
+      { i: "dumbbell", n: "Hip Abduction", d: "Outer thigh · 10 kg", s: "3 × 15", b: "Do it later — only 1 machine · or band side-walk (guess)", m: "abduct" }
+    ]],
+    ["Finish", [FIN, STRETCH, WAIT]]
+  ]};
+  var BACK = { title: "Back, Core + Hips", sub: "Upper-body shape + a little hip work", tab: "Back", groups: [
+    ["Warm up", [WARM]],
+    ["Workout", [
+      { i: "dumbbell", n: "Lat Pulldown", d: "10 kg", s: "3 × 12", b: "Take turns with Jun · the lever machines may be heavy (guess) — better to wait", m: "latpd" },
+      { i: "dumbbell", n: "Seated Row", d: "10 kg", s: "3 × 12", b: "Take turns with Jun · the chest-supported row may be heavy (guess)", m: "row" },
+      { i: "target", n: "Glute Bridge", d: "Body weight · on a mat", s: "3 × 15" },
+      { i: "dumbbell", n: "Hip Abduction", d: "Outer thigh · 10 kg", s: "3 × 15", b: "Do it later — only 1 machine · or band side-walk (guess)", m: "abduct" },
+      { i: "target", n: "Plank", d: "On a mat", s: "3 × 30 sec" },
+      { i: "target", n: "Dead Bug", d: "On a mat", s: "3 × 10", s2: "each side" }
+    ]],
+    ["Finish", [FIN, STRETCH, WAIT]]
+  ]};
+  var CARDIO = { title: "Cardio Day", sub: "Move a little more instead of eating less", tab: "Cardio", groups: [
+    ["Warm up", [WARM]],
+    ["Workout", [
+      { i: "dumbbell", n: "Chest Press machine", d: "Lie down and push up · 10 kg (guess) · top plate = 5 kg", s: "2 × 12", b: "Light dumbbell bench (guess) — not the plate-loaded chest press", m: "cpin" },
+      { i: "target", n: "Crunch", d: "On a mat", s: "3 × 15" },
+      { i: "target", n: "Side Plank", d: "On a mat", s: "3 × 20 sec", s2: "each side" },
+      { i: "heart", n: "Stair climber + incline walk", d: "Level 1 for 1 min → level 2 · you can talk, but not sing", s: "30 min", s2: "total", b: "Incline walk → elliptical (easy)", m: "stairs" },
+      { i: "dumbbell", n: "Hip Abduction · optional", d: "10 kg · only if it all feels too easy", s: "2–3 × 15", m: "abduct" }
+    ]],
+    ["Finish", [STRETCH, WAIT]]
+  ]};
+  var DAYS = [
+    { k: "Mon", plan: HIP }, { k: "Tue", plan: BACK }, { k: "Wed", plan: CARDIO }, { k: "Thu", plan: HIP },
+    { k: "Fri", plan: BACK }, { k: "Sat", rest: true }, { k: "Sun", plan: CARDIO }
+  ];
+
+  var NOTES = {
+    "2026-10-01": "<b>Your first Hip Day.</b> Use your first set to find each weight.",
+    "2026-10-03": "<b>Measure</b> waist, thigh and hip + take your photo — if you haven't yet.",
+    "2026-10-09": "<b>Kathmandu — no gym.</b> Home workout (15 min) if you can.",
+    "2026-10-17": "<b>First calorie check</b> (guess) — Jun looks at your first 2 weeks.",
+    "2026-10-19": "<b>Your 3 easy weeks are done.</b>",
+    "2026-10-26": "<b>Jun may update your plan</b> this week (guess)."
+  };
+  var DASHAIN = "<b>Dashain.</b> Not sure the gym is open (guess). Open → this plan · closed → home workout (see More).";
+
+  var REST_ACTS = [
+    { e: "🌊", n: "Phewa lakeside walk or easy jog", d: "Long runs (like a marathon) after Oct 19 (guess) — your tendons are still getting used to training", src: "Jun's idea" },
+    { e: "🏸", n: "Badminton", d: "The open ground nearby · just for fun", src: "Jun's idea" },
+    { e: "⛰️", n: "Sarangkot hike", d: "Uphill · go slow · 2+ hours uphill → eat one extra snack that day (guess)", src: "Weekend list 1" },
+    { e: "🏞️", n: "Begnas lake", d: "Walk by the lake", src: "Weekend list 2" },
+    { e: "🛶", n: "Kayak on Phewa", d: "Early morning", src: "Weekend list 3" },
+    { e: "🛕", n: "Peace Pagoda hike", d: "Uphill · go slow · long hike → one extra snack (guess)", src: "Weekend list 4" },
+    { e: "🪂", n: "Paragliding", d: "Sep – Nov · not exercise, just fun", src: "Weekend list 5" },
+    { e: "🛋️", n: "Just rest + stretch", d: "Also a good choice", src: "" }
+  ];
+
+  // ---- photos (names only) + sheets ----
+  var PH = {
+    tread: { src: "img/treadmill-stairs.jpg", w: 411, h: 750, cap: "Treadmill (left) · stair climber (right)" },
+    ellip: { src: "img/elliptical-bike.jpg", w: 1000, h: 750, cap: "Ellipticals · spin bike (right)" },
+    legpress: { src: "img/leg-press.jpg", w: 750, h: 1000, cap: "45° leg press (plates)" },
+    legcurl: { src: "img/leg-curl.jpg", w: 804, h: 750, cap: "Lying leg curl (plates)" },
+    db: { src: "img/dumbbells.jpg", w: 1000, h: 750, cap: "Dumbbell rack · benches" },
+    abduct: { src: "img/hip-abduction.jpg", w: 750, h: 1000, cap: "Outer / inner thigh machine (pin)" },
+    latpd: { src: "img/lat-pulldown.jpg", w: 680, h: 1000, cap: "Lat pulldown (pin)" },
+    lever1: { src: "img/lever-pulldown-1.jpg", w: 750, h: 1000, cap: "Lever pulldown (plates)" },
+    lever2: { src: "img/lever-pulldown-2.jpg", w: 920, h: 750, cap: "Lever pulldown (plates)" },
+    srow: { src: "img/seated-row.jpg", w: 679, h: 1000, cap: "Seated cable row (pin)" },
+    csrow: { src: "img/chest-supported-row.jpg", w: 1000, h: 750, cap: "Chest-supported row (plates)" },
+    htm: { src: "img/hip-thrust-machine.jpg", w: 750, h: 1000, cap: "Hip thrust machine (plates)" },
+    smith: { src: "img/smith-bar-pad.jpg", w: 509, h: 1000, cap: "Smith machine" },
+    cpin: { src: "img/chest-press.jpg", w: 750, h: 1000, cap: "Chest press — lie down and push (pin · red bench)" }
+  };
+  var MEDIA = {
+    warm: { photos: [["tread", "Treadmill = left"]], alts: [["ellip", "Elliptical or bike"]] },
+    walk: { photos: [["tread", "Treadmill = left"]], note: "Busy? Stretch or rest — not the elliptical (it can be harder than walking · guess)." },
+    stairs: { photos: [["tread", "Stair climber = right · incline walk = treadmill on the left"]], alts: [["ellip", "Both busy → elliptical (easy)"]] },
+    hipthrust: { move: "hipthrust", steps: ["Sit on the floor. Rest your upper back on the edge of a bench.", "Put the bar with the pad on your hips. Feet flat on the floor.", "Push your hips up, then lower them back down."], photos: [["smith", "The bar pad = the black tube on the floor, bottom left"]], alts: [["htm", "Same sets"]] },
+    rdl: { move: "rdl", steps: ["Stand tall. Hold a dumbbell in each hand in front of your thighs.", "Knees a little bent. Push your hips back and lean forward until the dumbbells pass your knees. Keep your back straight, like the drawing.", "Stand back up."], photos: [["db", "Dumbbells are here"]] },
+    legpress: { photos: [["legpress"]], note: "Busy? Take turns with Jun — don't use the squat machine." },
+    legcurl: { move: "legcurl", steps: ["Lie face down on the machine. Hook the pad behind your ankles.", "Bend your knees — bring your heels toward your bottom.", "Lower back down."], photos: [["legcurl"]], alts: [["db", "Dumbbell leg curl 2.5–5 kg (guess) — if you can't do 12"]] },
+    abduct: { photos: [["abduct"]], note: "Busy? Do it later — there's only 1 machine. Or band side-walk (guess)." },
+    latpd: { photos: [["latpd"]], note: "Busy? Take turns with Jun first. The lever machines below may be heavy (guess) — better to wait.", alts: [["lever1", "Lever pulldown"], ["lever2", "Lever pulldown"]] },
+    row: { photos: [["srow"]], note: "Busy? Take turns with Jun first. The machine below may be heavy (guess).", alts: [["csrow", "Chest-supported row"]] },
+    cpin: { photos: [["cpin", "Your machine"]], note: "Busy? Light dumbbell bench (guess). Not the plate-loaded chest press — its lever adds weight (guess).", alts: [["db", "Dumbbells + benches"]] }
+  };
+
+  function esc(s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); }
+
+  // ---- time: Nepal ----
+  function nepalNow() {
+    try {
+      var parts = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kathmandu", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", hourCycle: "h23" }).formatToParts(new Date());
+      var o = {};
+      parts.forEach(function (x) { o[x.type] = x.value; });
+      return { date: new Date(Date.UTC(+o.year, +o.month - 1, +o.day)), hour: +o.hour };
+    } catch (e) {
+      var d = new Date();
+      return { date: new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate())), hour: d.getHours() };
+    }
+  }
+  var NOW = nepalNow();
+  var TODAY = NOW.date;
+  var todayIdx = (TODAY.getUTCDay() + 6) % 7; // 0 = Mon
+  var startIdx = NOW.hour >= 12 ? (todayIdx + 1) % 7 : todayIdx; // afternoon → show tomorrow
+  var WD = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+  var MON = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  function dateFor(idx) { return new Date(TODAY.getTime() + ((idx - todayIdx + 7) % 7) * 86400000); }
+  function iso(d) { return d.toISOString().slice(0, 10); }
+  function pretty(d, idx) { return WD[idx] + ", " + MON[d.getUTCMonth()] + " " + d.getUTCDate(); }
+
+  // ---- render ----
+  function rowHtml(r) {
+    var tap = r.m && MEDIA[r.m];
+    var h = (tap ? '<button type="button" class="row" data-m="' + r.m + '" data-t="' + esc(r.n) + '" data-s="' + esc(r.s + (r.s2 ? " " + r.s2 : "")) + '" data-d="' + esc(r.d || "") + '">' : '<div class="row">');
+    h += '<span class="ic">' + ICON[r.i] + '</span>';
+    h += '<span class="tx"><span class="n">' + esc(r.n) + (r.main ? '<span class="main">Main</span>' : "") + '</span>';
+    if (r.d) h += '<span class="d">' + esc(r.d) + '</span>';
+    if (r.b) h += '<span class="b">' + esc(r.b) + '</span>';
+    h += '</span><span class="rt"><span class="sets">' + esc(r.s) + (r.s2 ? '<small>' + esc(r.s2) + '</small>' : "") + '</span>' + (tap ? CHEV : "") + '</span>';
+    return h + (tap ? "</button>" : "</div>");
+  }
+  function restHtml() {
+    var h = '<div class="sec">Saturday morning</div><div class="list">' +
+      '<div class="row"><span class="ic">⚖️</span><span class="tx"><span class="n">Weigh yourself</span><span class="d">Every morning, like always · Jun works out the weekly average</span></span></div>' +
+      '<div class="row"><span class="ic">📏</span><span class="tx"><span class="n">Tape: waist, thigh, hip</span><span class="d">Every 4 weeks</span></span></div></div>';
+    h += '<div class="sec">Want to do something? Keep it easy</div><p class="hint" style="margin-top:0">You train on Sunday. Easy = you can talk, but not sing.</p><div class="list">';
+    REST_ACTS.forEach(function (a) {
+      h += '<div class="row"><span class="ic">' + a.e + '</span><span class="tx">' + (a.src ? '<span class="src">' + esc(a.src) + '</span>' : "") + '<span class="n">' + esc(a.n) + '</span><span class="d">' + esc(a.d) + '</span></span></div>';
+    });
+    return h + '</div>';
+  }
+
+  var nav = document.getElementById("days");
+  var panel = document.getElementById("panel");
+
+  function render(idx) {
+    var day = DAYS[idx], d = dateFor(idx), key = iso(d);
+    var rel = idx === todayIdx ? "Today" : (idx === (todayIdx + 1) % 7 ? "Tomorrow" : "Next");
+    var h = '<div class="date">' + rel + ' · ' + pretty(d, idx) + '</div>';
+    h += '<h1>' + (day.rest ? "Rest Day" : esc(day.plan.title)) + '</h1><p class="sub">' + (day.rest ? "The gym is closed on Saturday" : esc(day.plan.sub)) + '</p>';
+    var note = NOTES[key];
+    if (!day.rest && key >= "2026-10-11" && key <= "2026-10-25") note = DASHAIN + (note ? "<br>" + note : "");
+    if (note) h += '<div class="note">' + note + '</div>';
+    if (day.rest) {
+      h += restHtml();
+    } else {
+      day.plan.groups.forEach(function (g) {
+        h += '<div class="sec">' + esc(g[0]) + '</div><div class="list">' + g[1].map(rowHtml).join("") + '</div>';
+      });
+      h += '<p class="hint">Top to bottom. If a machine is taken, use the “Busy?” line — and find the new weight with your first set.</p>';
+    }
+    panel.innerHTML = h;
+    panel.setAttribute("aria-labelledby", "tab-" + idx);
+    for (var i = 0; i < nav.children.length; i++) {
+      nav.children[i].setAttribute("aria-selected", i === idx ? "true" : "false");
+      nav.children[i].tabIndex = i === idx ? 0 : -1;
+    }
+  }
+  function pick(i) {
+    render(i);
+    try { window.scrollTo(0, 0); } catch (e) {}
+  }
+
+  DAYS.forEach(function (day, i) {
+    var b = document.createElement("button");
+    b.type = "button";
+    b.className = "chip" + (i === todayIdx ? " today" : "");
+    b.id = "tab-" + i;
+    b.setAttribute("role", "tab");
+    b.setAttribute("aria-controls", "panel");
+    b.innerHTML = '<span class="d">' + day.k + '</span><span class="t">' + (day.rest ? "Rest" : day.plan.tab) + '</span>';
+    b.addEventListener("click", function () { pick(i); });
+    b.addEventListener("keydown", function (e) {
+      if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
+      e.preventDefault();
+      var n = (i + (e.key === "ArrowRight" ? 1 : 6)) % 7;
+      pick(n);
+      nav.children[n].focus();
+    });
+    nav.appendChild(b);
+  });
+
+  // ---- sheet ----
+  var sheet = document.getElementById("sheet");
+  var sheetTitle = document.getElementById("sheet-title");
+  var sheetBody = document.getElementById("sheet-body");
+  var sheetCard = sheet.querySelector(".card");
+  var lastFocus = null;
+  function shot(item) {
+    var p = PH[item[0]];
+    if (!p) return "";
+    return '<figure class="shot"><img src="' + p.src + '" width="' + p.w + '" height="' + p.h + '" alt="' + esc(p.cap) + '" decoding="async"><figcaption><b>' + esc(p.cap) + '</b>' + (item[1] ? '<span>' + esc(item[1]) + '</span>' : "") + '</figcaption></figure>';
+  }
+  function openSheet(key, title, sets, detail) {
+    var M = MEDIA[key];
+    if (!M) return;
+    var h = '<div class="big"><span class="s">' + esc(sets) + '</span>' + (detail ? '<span class="d">' + esc(detail) + '</span>' : "") + '</div>';
+    if (M.move) h += '<section class="blk"><h3>How to do it</h3><figure class="move">' + DRAW.svg(M.move) + '<ol>' + M.steps.map(function (s) { return "<li>" + esc(s) + "</li>"; }).join("") + '</ol><small>Drawing = a rough idea. The real machine is in the photo below.</small></figure></section>';
+    if (M.photos && M.photos.length) h += '<section class="blk"><h3>At our gym</h3>' + M.photos.map(shot).join("") + '</section>';
+    if ((M.alts && M.alts.length) || M.note) h += '<section class="blk"><h3>If it’s busy</h3>' + (M.note ? '<p>' + esc(M.note) + '</p>' : "") + (M.alts || []).map(shot).join("") + '</section>';
+    sheetTitle.textContent = title;
+    sheetBody.innerHTML = h;
+    lastFocus = document.activeElement;
+    sheet.hidden = false;
+    document.body.classList.add("lock");
+    sheetCard.scrollTop = 0;
+    sheet.querySelector(".done").focus();
+  }
+  function closeSheet() {
+    if (sheet.hidden) return;
+    sheet.hidden = true;
+    document.body.classList.remove("lock");
+    sheetBody.innerHTML = "";
+    if (lastFocus && lastFocus.focus) lastFocus.focus();
+  }
+  sheet.addEventListener("click", function (e) { if (e.target.closest && e.target.closest("[data-close]")) closeSheet(); });
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape") closeSheet(); });
+  panel.addEventListener("click", function (e) {
+    var b = e.target.closest ? e.target.closest("button.row") : null;
+    if (b) openSheet(b.getAttribute("data-m"), b.getAttribute("data-t"), b.getAttribute("data-s"), b.getAttribute("data-d"));
+  });
+
+  render(startIdx);
+
+  // ---- copy the evening message ----
+  var tpl = document.getElementById("tpl");
+  var copyBtn = document.getElementById("copy");
+  function selectTpl() {
+    try { var r = document.createRange(); r.selectNodeContents(tpl); var s = window.getSelection(); s.removeAllRanges(); s.addRange(r); } catch (e) {}
+  }
+  function copied(ok) {
+    copyBtn.textContent = ok ? "Copied" : "Selected — press and hold to copy";
+    setTimeout(function () { copyBtn.textContent = "Copy"; }, 2000);
+  }
+  copyBtn.addEventListener("click", function () {
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(tpl.textContent).then(function () { copied(true); }, function () { selectTpl(); copied(false); });
+      } else { selectTpl(); copied(false); }
+    } catch (e) { selectTpl(); copied(false); }
+  });
+})();
+</script>
+</body>
+</html>
