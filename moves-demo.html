@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>Exercise library — QA</title>
+<style>
+/* QA page for moves.js: every exercise ID, grouped by category, EN/KO toggle. */
+:root {
+  --bg: #ffffff; --ink: #000000; --ink2: #262626; --muted: #737373; --line: #efefef; --chip: #efefef;
+  --blue: #0095f6; --pink: #e1306c; --soft: #fafafa;
+  --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --mv-ink: var(--ink2); --mv-muted: var(--muted); --mv-line: #dbdbdb; --mv-surface: var(--bg); --mv-soft: #f4f4f5;
+  --mv-accent: var(--blue); --mv-accent-soft: #b5dcfb; --mv-accent2: var(--pink);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #000000; --ink: #f5f5f5; --ink2: #e6e6e6; --muted: #a8a8a8; --line: #262626; --chip: #262626; --soft: #121212;
+    --mv-line: #3a3a3a; --mv-soft: #161616; --mv-accent-soft: #0d4573;
+    color-scheme: dark;
+  }
+}
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--font); font-size: 15px; line-height: 1.4; }
+.top { position: sticky; top: 0; z-index: 10; background: var(--bg); padding-top: env(safe-area-inset-top, 0px); border-bottom: 1px solid var(--line); }
+.bar { max-width: 640px; margin: 0 auto; height: 52px; padding: 0 16px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.bar h1 { margin: 0; font-size: 17px; font-weight: 700; }
+.seg { display: flex; background: var(--chip); border-radius: 10px; padding: 2px; }
+.seg button { font: inherit; font-size: 14px; font-weight: 600; border: 0; background: none; color: var(--ink); padding: 5px 14px; border-radius: 8px; cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--bg); box-shadow: 0 1px 3px rgba(0,0,0,.15); }
+main { max-width: 640px; margin: 0 auto; padding: 8px 16px calc(40px + env(safe-area-inset-bottom, 0px)); }
+.sec { margin: 22px 0 4px; font-size: 13px; font-weight: 600; color: var(--muted); }
+.list { border-top: 1px solid var(--line); }
+.row { width: 100%; display: flex; align-items: center; gap: 12px; padding: 11px 0; border: 0; border-bottom: 1px solid var(--line); background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.row:active { background: var(--soft); }
+.row:focus-visible, .done:focus-visible, .seg button:focus-visible { outline: 3px solid var(--blue); outline-offset: 2px; }
+.tx { flex: 1; min-width: 0; display: grid; gap: 1px; }
+.tx .n { font-size: 15px; font-weight: 600; }
+.tx .d { font-size: 12px; color: var(--muted); font-family: ui-monospace, "SF Mono", Menlo, monospace; }
+.chev { flex: none; width: 18px; height: 18px; fill: none; stroke: var(--muted); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.count { margin: 12px 0 0; font-size: 12.5px; color: var(--muted); }
+.sheet { position: fixed; inset: 0; z-index: 50; display: grid; align-items: end; justify-items: center; }
+.sheet[hidden] { display: none; }
+.back { position: absolute; inset: 0; background: rgba(0, 0, 0, .45); }
+.card { position: relative; width: 100%; max-width: 640px; max-height: 92vh; overflow-y: auto; overscroll-behavior: contain; background: var(--bg); color: var(--ink); border-radius: 16px 16px 0 0; padding: 0 16px calc(24px + env(safe-area-inset-bottom, 0px)); }
+.grab { width: 36px; height: 5px; border-radius: 3px; background: var(--line); margin: 8px auto 0; }
+.shead { position: sticky; top: 0; z-index: 2; background: var(--bg); display: grid; grid-template-columns: 60px 1fr 60px; align-items: center; padding: 8px 0 10px; border-bottom: 1px solid var(--line); }
+.shead h2 { margin: 0; text-align: center; font-size: 16px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.done { justify-self: end; font: inherit; font-size: 16px; font-weight: 600; color: var(--blue); background: none; border: 0; padding: 6px 0 6px 10px; cursor: pointer; }
+.sbody { padding-top: 14px; }
+body.lock { overflow: hidden; }
+@media (min-width: 700px) { .sheet { align-items: center; } .card { border-radius: 16px; } }
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="bar">
+    <h1 id="title">Exercise library</h1>
+    <div class="seg" role="group" aria-label="Language">
+      <button type="button" data-lang="en" aria-pressed="true">EN</button>
+      <button type="button" data-lang="ko" aria-pressed="false">KO</button>
+    </div>
+  </div>
+</header>
+<main id="list"></main>
+
+<div class="sheet" id="sheet" hidden>
+  <div class="back" data-close="1"></div>
+  <div class="card" role="dialog" aria-modal="true" aria-labelledby="sheet-title">
+    <div class="grab"></div>
+    <div class="shead"><span></span><h2 id="sheet-title"></h2><button type="button" class="done" data-close="1" id="done">Done</button></div>
+    <div class="sbody" id="sheet-body"></div>
+  </div>
+</div>
+
+<script src="moves.js"></script>
+<script>
+(function () {
+  "use strict";
+  var M = window.MOVES;
+  // Photos in this repo. Keys used only by the Korean page are not here, so their sheets skip the photo.
+  var PHOTOS = {
+    tread: { src: "img/treadmill-stairs.jpg", w: 411, h: 750 },
+    ellip: { src: "img/elliptical-bike.jpg", w: 1000, h: 750 },
+    legpress: { src: "img/leg-press.jpg", w: 750, h: 1000 },
+    legcurl: { src: "img/leg-curl.jpg", w: 804, h: 750 },
+    db: { src: "img/dumbbells.jpg", w: 1000, h: 750 },
+    abduct: { src: "img/hip-abduction.jpg", w: 750, h: 1000 },
+    latpd: { src: "img/lat-pulldown.jpg", w: 680, h: 1000 },
+    lever1: { src: "img/lever-pulldown-1.jpg", w: 750, h: 1000 },
+    lever2: { src: "img/lever-pulldown-2.jpg", w: 920, h: 750 },
+    srow: { src: "img/seated-row.jpg", w: 679, h: 1000 },
+    csrow: { src: "img/chest-supported-row.jpg", w: 1000, h: 750 },
+    htm: { src: "img/hip-thrust-machine.jpg", w: 750, h: 1000 },
+    smith: { src: "img/smith-bar-pad.jpg", w: 509, h: 1000 },
+    cpin: { src: "img/chest-press.jpg", w: 750, h: 1000 },
+    cable: { src: "img/cable.jpg", w: 750, h: 1000 },
+    shpress: { src: "img/shoulder-press-machine.jpg", w: 750, h: 1000 },
+    sidem: { src: "img/side-raise-machine.jpg", w: 750, h: 1000 },
+    backext: { src: "img/back-extension.jpg", w: 840, h: 802 },
+    kickback: { src: "img/glute-kickback.jpg", w: 750, h: 1000 }
+  };
+  var TXT = {
+    en: { title: "Exercise library", done: "Done", count: " exercises · tap one to open its sheet" },
+    ko: { title: "운동 라이브러리", done: "닫기", count: "개 운동 · 눌러서 열기" }
+  };
+  var CHEV = '<svg class="chev" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg>';
+  var lang = "en";
+  try { if (localStorage.getItem("mv-demo-lang") === "ko") lang = "ko"; } catch (e) {}
+
+  var listEl = document.getElementById("list");
+  function esc(s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); }
+
+  function renderList() {
+    var ids = M.ids(), h = "";
+    M.cats().forEach(function (c) {
+      var inCat = ids.filter(function (id) { return M.cat(id) === c; });
+      if (!inCat.length) return;
+      h += '<div class="sec">' + esc(M.catName(c, lang)) + '</div><div class="list">';
+      inCat.forEach(function (id) {
+        h += '<button type="button" class="row" data-id="' + id + '"><span class="tx"><span class="n">' + esc(M.name(id, lang)) + '</span><span class="d">' + id + '</span></span>' + CHEV + '</button>';
+      });
+      h += '</div>';
+    });
+    h += '<p class="count">' + ids.length + esc(TXT[lang].count) + '</p>';
+    listEl.innerHTML = h;
+    document.documentElement.lang = lang;
+    document.getElementById("title").textContent = TXT[lang].title;
+    document.getElementById("done").textContent = TXT[lang].done;
+    var bs = document.querySelectorAll(".seg button");
+    for (var i = 0; i < bs.length; i++) bs[i].setAttribute("aria-pressed", bs[i].getAttribute("data-lang") === lang ? "true" : "false");
+  }
+
+  var sheet = document.getElementById("sheet"), body = document.getElementById("sheet-body"), card = sheet.querySelector(".card");
+  var stop = null, lastFocus = null, openId = null;
+  function open(id) {
+    openId = id;
+    document.getElementById("sheet-title").textContent = M.name(id, lang);
+    if (stop) stop();
+    body.innerHTML = M.renderSheet(id, { lang: lang, photos: PHOTOS });
+    if (sheet.hidden) { lastFocus = document.activeElement; card.scrollTop = 0; }
+    sheet.hidden = false;
+    document.body.classList.add("lock");
+    stop = M.animate(body);
+    document.getElementById("done").focus();
+  }
+  function close() {
+    if (sheet.hidden) return;
+    if (stop) { stop(); stop = null; }
+    sheet.hidden = true;
+    openId = null;
+    body.innerHTML = "";
+    document.body.classList.remove("lock");
+    if (lastFocus && lastFocus.focus) lastFocus.focus();
+  }
+  listEl.addEventListener("click", function (e) {
+    var b = e.target.closest ? e.target.closest("button.row") : null;
+    if (b) open(b.getAttribute("data-id"));
+  });
+  sheet.addEventListener("click", function (e) { if (e.target.closest && e.target.closest("[data-close]")) close(); });
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape") close(); });
+  document.querySelector(".seg").addEventListener("click", function (e) {
+    var b = e.target.closest ? e.target.closest("button[data-lang]") : null;
+    if (!b) return;
+    lang = b.getAttribute("data-lang");
+    try { localStorage.setItem("mv-demo-lang", lang); } catch (e2) {}
+    renderList();
+    if (openId) open(openId);
+  });
+  renderList();
+  // Deep link for review: moves-demo.html#lat_pulldown opens that sheet.
+  var hash = location.hash.slice(1);
+  if (hash && M.ids().indexOf(hash) >= 0) open(hash);
+})();
+</script>
+</body>
+</html>
